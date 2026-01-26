@@ -1,0 +1,9 @@
+###
+GET http://localhost:6001/api/busca_sinpet?q=aime
+Authorization: Bearer q8lhWoiGhVKqlEPjR3KFwEBqR2bNL_f_qYSHRiHIsDo
+Content-Type: application/json
+
+###
+GET http://localhost:6001/api/count
+Authorization: Bearer q8lhWoiGhVKqlEPjR3KFwEBqR2bNL_f_qYSHRiHIsDo
+Content-Type: application/json

@@ -1,0 +1,48 @@
+backend:
+  port: 8000
+  host: 0.0.0.0
+nota_ri:
+  domain_name: 'Nota RI'
+
+  database:
+    dev:
+      user: postgres
+      password: postgres
+      host: localhost
+      port: 5432
+      db_name: nota_ri
+      drop_all: false
+
+    test:
+      user: postgres
+      password: postgres
+      host: localhost
+      port: 5432
+      db_name: nota_ri_test     # 👈 banco exclusivo de teste
+      drop_all: true            # 👈 PERMITIDO só em test
+
+    prod:
+      user: postgres
+      password: ${NOTA_RI_DB_PASSWORD}   # 👈 nunca commitar senha real
+      host: db.prod.internal
+      port: 5432
+      db_name: nota_ri
+      drop_all: false
+
+  csv:
+    file: /home/aquino/PycharmProjects/busca-core/data/manutancao/RIs_T051.csv
+
+  search_config:
+    table_name: nota_ri_search
+    fields:
+      - name: content
+        weight: A
+  infra:
+    fts_init_sql_file: src/busca/domains/nota_ri/repository/db/ini_fts.sql
+
+frontend:
+  port: 80
+  host: 0.0.0.0
+credential_app:
+  host: credential-app
+  port: 5001
