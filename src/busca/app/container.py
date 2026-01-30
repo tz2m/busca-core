@@ -17,6 +17,12 @@ from busca.domains.nota_ri.repository.db.nota_ri_health_repository_sql import No
 from busca.domains.nota_ri.repository.db.nota_ri_repository_sql import NotaRIRepositorySql
 from busca.domains.nota_ri.repository.db.search_nota_ri_repository_sql import SearchNotaRiRepositorySql
 
+from busca.domains.material.repository.db.material_count_use_case import MaterialCountUseCase
+from busca.domains.material.repository.db.material_health_repository_sql import MaterialHealthRepository
+from busca.domains.material.repository.db.material_repository_sql import MaterialRepositorySql
+from busca.domains.material.repository.db.search_material_repository_sql import SearchMaterialRepositorySql
+from busca.domains.material.repository.sqlite.material_repository_sqlite import MaterialRepositorySqlite
+
 
 class Container(containers.DeclarativeContainer):
     """Container de injeção de dependências"""
@@ -24,7 +30,6 @@ class Container(containers.DeclarativeContainer):
 
     # 🔥 esses são injetados pelo bootstrap
     nota_ri_database_config = providers.Singleton(lambda: None)
-    nota_ri_drop_all = providers.Singleton(lambda: False)
 
     engine_nota_ri = providers.Singleton(
         create_engine,
@@ -61,6 +66,45 @@ class Container(containers.DeclarativeContainer):
         session=session_factory_nota_ri,
     )
 
+    # ========== MATERIAL DOMAIN ==========
+
+    # 🔥 injetados pelo bootstrap
+    material_database_config = providers.Singleton(lambda: None)
+
+    engine_material = providers.Singleton(
+        create_engine,
+        material_database_config.provided.url,
+        pool_pre_ping=True,
+        future=True,
+    )
+
+    session_factory_material = providers.Singleton(
+        sessionmaker,
+        bind=engine_material,
+        autoflush=False,
+        autocommit=False,
+        expire_on_commit=False,
+    )
+
+    session_material = providers.Factory(
+        session_factory_material,
+    )
+
+    # --- Repos ---
+    material_repo_sql = providers.Factory(
+        MaterialRepositorySql,
+        session=session_material,
+    )
+
+    material_repo_sqlite = providers.Factory(
+        MaterialRepositorySqlite,
+        file=config.material.sqlite.file,
+    )
+
+    search_material_repo = providers.Factory(
+        SearchMaterialRepositorySql,
+        session=session_factory_material,
+    )
 
     # --- Use Cases concretos ---
     count_nota_ri = providers.Factory(
@@ -77,20 +121,35 @@ class Container(containers.DeclarativeContainer):
         repo=search_nota_ri_repo,
     )
 
+    # --- Material Use Cases ---
+    count_material = providers.Factory(
+        MaterialCountUseCase,
+        repo=material_repo_sql,
+    )
+    health_material = providers.Factory(
+        MaterialHealthRepository,
+        engine=engine_material,
+    )
+
+    search_material_use_case = providers.Factory(
+        SearchUseCase,
+        repo=search_material_repo,
+    )
+
     # --- Mapa de domínios ---
     count_use_case_map = providers.Dict(
         nota_ri=count_nota_ri,
+        material=count_material,
     )
     health_repo_map = providers.Dict(
         nota_ri=health_nota_ri,
+        material=health_material,
     )
 
     search_use_case_map = providers.Dict(
         nota_ri=search_nota_ri_use_case,
+        material=search_material_use_case,
     )
-
-
-
 
     # --- Resolver (fachada application) ---
     count_use_case_resolver = providers.Factory(
@@ -106,6 +165,12 @@ class Container(containers.DeclarativeContainer):
         SyncService,
         orig_repo=nota_ri_repo_csv,
         dest_repo=nota_ri_repo_sql
+    )
+
+    material_sync_service = providers.Factory(
+        SyncService,
+        orig_repo=material_repo_sqlite,
+        dest_repo=material_repo_sql
     )
 
     search_use_case_resolver = providers.Factory(

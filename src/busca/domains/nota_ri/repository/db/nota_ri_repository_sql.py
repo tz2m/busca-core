@@ -69,6 +69,29 @@ class NotaRIRepositorySql(DataRepository):
 
             session.commit()
 
+    def save_all(self, items: List[NotaRi]) -> int:
+        """
+        Salva múltiplos materiais em batch.
+
+        Args:
+            items: Lista de NotaRi a serem salvos
+
+        Returns:
+            Número de NotaRi salvos
+        """
+        with self.session_factory() as session:  # type: Session
+            now = datetime.datetime.now()
+
+            for nota_ri in items:
+                material_sql = NotaRiSQL.create_from_entity(nota_ri)
+                # TODO verificar se deve atualizar apenas last_modified
+                material_sql.last_modified = now
+                session.merge(material_sql)
+
+            session.commit()
+
+            return len(items)
+
     # --------------------------------
     # Retorna quantidade de registros
     # --------------------------------

@@ -1,5 +1,5 @@
 -- Copia o script SQL de inicialização para criar o dicionário e a configuração no DockerFile
--- COPY ini_fts.sql /docker-entrypoint-initdb.d/
+-- COPY init_fts.sql /docker-entrypoint-initdb.d/
 
 DROP TEXT SEARCH DICTIONARY IF EXISTS dict_simple_ptbr CASCADE;
 CREATE EXTENSION IF NOT EXISTS unaccent;
@@ -25,12 +25,3 @@ DROP TEXT SEARCH CONFIGURATION IF EXISTS pt_br CASCADE;
 CREATE TEXT SEARCH CONFIGURATION pt_br (COPY =pg_catalog.portuguese);
 ALTER TEXT SEARCH CONFIGURATION pt_br ALTER MAPPING FOR asciiword, asciihword, hword_asciipart, word, hword, hword_part
     WITH unaccent, portuguese_stem, dict_simple_ptbr, dict_ispell_ptbr, dict_snowball_ptbr;
-ALTER ROLE postgres SET default_text_search_config = 'public.pt_br';
-
--- Criando a função nota_ri_tsquery
-CREATE OR REPLACE FUNCTION nota_ri_tsquery(word text)
-RETURNS tsquery AS $$
-BEGIN
-    RETURN websearch_to_tsquery('pt_br', trim(word));
-END;
-$$ LANGUAGE plpgsql;

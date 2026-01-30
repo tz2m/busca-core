@@ -126,7 +126,7 @@ nota_ri:
     drop_all: false
 
   infra:
-    fts_init_sql_file: src/domains/nota_ri/repository/db/ini_fts.sql
+    fts_init_sql_file: src/domains/nota_ri/repository/db/init_fts.sql
 ```
 
 ---

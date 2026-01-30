@@ -6,10 +6,13 @@ import yaml
 from dotenv import load_dotenv
 from sqlalchemy import Engine, inspect, text
 from dependency_injector import providers
+from sqlalchemy.dialects.postgresql import Any
 
-from busca.app.config_loader import load_nota_ri_db_config
+from busca.core.entity.domain_config import DatabaseConfig
 from busca.domains.nota_ri.repository.db.model.nota_ri_sql import BaseNotaRi
 from busca.domains.nota_ri.repository.db.model.nota_ri_sql_trigger import set_nota_ri_tigger
+from busca.domains.material.repository.db.model.material_sql import BaseMaterial
+from busca.domains.material.repository.db.model.material_sql_trigger import set_material_trigger
 from busca.app.container import Container
 
 load_dotenv()
@@ -17,9 +20,6 @@ load_dotenv()
 
 def bootstrap() -> Container:
     container = Container()
-
-    load_dotenv()
-    env = os.getenv("BUSCA_ENV", "dev")
 
     BUSCA_DATA = Path(
         os.getenv("BUSCA_DATA", Path(__file__).resolve().parents[3])
@@ -31,23 +31,17 @@ def bootstrap() -> Container:
         raw_config = yaml.safe_load(f)
 
     container.config.from_dict(raw_config)
-
-    # 🔥 resolve config tipada respeitando BUSCA_ENV
-    db_config, drop_all = load_nota_ri_db_config(str(config_path))
-
-    # ✅ override correto
     container.nota_ri_database_config.override(
-        providers.Object(db_config)
+        providers.Object(DatabaseConfig(**container.config.nota_ri.database().get(os.getenv("BUSCA_ENV", "dev"))))
     )
+    init_schema(container.engine_nota_ri(), container.nota_ri_database_config().drop_all, BaseNotaRi,
+                set_nota_ri_tigger)
 
-    container.nota_ri_drop_all.override(
-        providers.Object(drop_all)
+    container.material_database_config.override(
+        providers.Object(DatabaseConfig(**container.config.material.database().get(os.getenv("BUSCA_ENV", "dev"))))
     )
-
-    # agora isso funciona
-    engine_nota_ri = container.engine_nota_ri()
-
-    schema_nota_ri(engine_nota_ri, drop_all, env)
+    init_schema(container.engine_material(), container.material_database_config().drop_all, BaseMaterial,
+                set_material_trigger)
 
     container.wire(
         modules=[
@@ -60,23 +54,21 @@ def bootstrap() -> Container:
     return container
 
 
-
-def schema_nota_ri(engine: Engine, drop_all: bool, env: str):
+def init_schema(engine: Engine, drop_all: bool, entity: Any, tigger_setter):
     def is_blank_db(eng: Engine) -> bool:
         with eng.connect() as connection:
             inspector = inspect(connection)
             return len(inspector.get_table_names()) == 0
 
     def init_db(eng: Engine):
-        set_nota_ri_tigger()
-        BaseNotaRi.metadata.create_all(eng)
+        tigger_setter()
+        entity.metadata.create_all(eng)
 
-
-    if env == "prod" and drop_all:
+    if os.getenv("BUSCA_ENV", "dev") == "prod" and drop_all:
         raise RuntimeError("drop_all jamais permitido em produção")
 
     if drop_all:
-        BaseNotaRi.metadata.drop_all(engine)
+        entity.metadata.drop_all(engine)
 
     if is_blank_db(engine):
         init_db(engine)

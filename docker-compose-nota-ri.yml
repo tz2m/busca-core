@@ -1,9 +1,9 @@
 services:
   nota-ri-db:
-    image: nota-ri-postgres:0.0.3
+    image: busca-postgres:0.0.11
     build:
       context: .
-      dockerfile: docker/Dockerfile-db-nota-ri
+      dockerfile: docker/Dockerfile-db
     container_name: nota-ri-db
     networks:
       - busca-net
@@ -23,8 +23,35 @@ services:
       retries: 5
       timeout: 3s
 
+  material-db:
+    image: busca-postgres:0.0.11
+    build:
+      context: .
+      dockerfile: docker/Dockerfile-db
+    container_name: material-db
+    networks:
+      - busca-net
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: material
+    expose:
+      - "5432"
+    ports:
+      - "5430:5432"
+    volumes:
+      - material_postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d material"]
+      interval: 5s
+      retries: 5
+      timeout: 3s
+
+
 volumes:
   nota_ri_postgres_data:
+    driver: local
+  material_postgres_data:
     driver: local
 
 networks:

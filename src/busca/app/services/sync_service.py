@@ -8,11 +8,10 @@ class SyncService:
         orig_state = self.orig_repo.get_current_state()
         delta = list(self.dest_repo.extract(orig_state))
 
-        for item in delta:
-            self.dest_repo.save(item)
+        self.dest_repo.save_all(delta)
 
         return {
-            "csv": len(orig_state),
+            self.orig_repo.__class__.__name__: len(orig_state),
             "delta": len(delta),
-            "db": self.dest_repo.size(),
+            self.dest_repo.__class__.__name__: self.dest_repo.size(),
         }

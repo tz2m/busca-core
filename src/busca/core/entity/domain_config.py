@@ -27,6 +27,7 @@ class DatabaseConfig(BaseModel):
     host: str
     port: int
     db_name: str
+    drop_all: bool = False
 
     @property
     def url(self):

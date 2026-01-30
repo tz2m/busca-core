@@ -7,10 +7,11 @@ from sqlalchemy.orm import Session
 
 from busca.app.dto.search_result_dto import SearchResultDTO
 from busca.core.repository.search_repository import SearchRepository
-from busca.domains.nota_ri.repository.db.model.nota_ri_sql import NotaRiSQL
+from busca.domains.material.repository.db.model.material_sql import MaterialSQL
 
 
-class SearchNotaRiRepositorySql(SearchRepository):
+class SearchMaterialRepositorySql(SearchRepository):
+    """Repositório de busca FTS para materiais usando PostgreSQL."""
 
     def __init__(self, session, debug: bool = False):
         self.session_factory = session
@@ -21,13 +22,10 @@ class SearchNotaRiRepositorySql(SearchRepository):
     # -------------------------
     @staticmethod
     def _adjust_input_text(text: str) -> str:
-        pattern = r'[A-Za-z]{2}-\d[A-Za-z]{2}-\d{1,6}'
-
-        def replace_hyphen(match):
-            part = match.group().replace('-', ' ').split(" ")
-            return f"{part[0]} {part[1]} {part[2].zfill(5)}"
-
-        return re.sub(pattern, replace_hyphen, text)
+        """Normaliza o texto de entrada para melhorar a busca."""
+        # Remove caracteres especiais extras e normaliza espaços
+        text = re.sub(r'\s+', ' ', text)
+        return text.strip()
 
     # -------------------------
     # Busca FTS com ranking + highlight
@@ -39,6 +37,18 @@ class SearchNotaRiRepositorySql(SearchRepository):
         offset: int = 0,
         highlight: bool = True,
     ) -> List[SearchResultDTO]:
+        """
+        Realiza busca full-text em materiais.
+        
+        Args:
+            query: Texto de busca
+            limit: Número máximo de resultados
+            offset: Offset para paginação
+            highlight: Se deve incluir highlight dos termos
+            
+        Returns:
+            Lista de SearchResultDTO com materiais encontrados
+        """
 
         if not query.strip():
             return []
@@ -49,22 +59,23 @@ class SearchNotaRiRepositorySql(SearchRepository):
 
             ts_query = func.websearch_to_tsquery("pt_br", query)
 
-            rank = func.ts_rank(NotaRiSQL.document, ts_query).label("rank")
+            rank = func.ts_rank(MaterialSQL.document, ts_query).label("rank")
 
+            # Usa o campo tpc (descrição técnica completa) para highlight
             highlight_col = func.ts_headline(
                 "pt_br",
-                NotaRiSQL.texto_descritivo_ri,
+                func.coalesce(MaterialSQL.tpc, MaterialSQL.txt),
                 ts_query,
                 "MaxFragments=2, FragmentDelimiter=' ... ', MaxWords=20, MinWords=10"
             ).label("highlight")
 
             q = (
                 session.query(
-                    NotaRiSQL,
+                    MaterialSQL,
                     rank,
                     highlight_col,
                 )
-                .filter(NotaRiSQL.document.op("@@")(ts_query))
+                .filter(MaterialSQL.document.op("@@")(ts_query))
                 .order_by(rank.desc())
                 .limit(limit)
                 .offset(offset)

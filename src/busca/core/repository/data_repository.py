@@ -16,5 +16,9 @@ class DataRepository(ABC):
         pass
 
     @abstractmethod
+    def save_all(self, items: List[Any]) -> int:
+        pass
+
+    @abstractmethod
     def size(self):
         pass

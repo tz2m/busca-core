@@ -9,7 +9,6 @@ RUN mkdir -p /usr/share/postgresql/18/tsearch_data && \
     curl -sSL 'https://gist.github.com/CauanCabral/5ad952e0014c1cf21a87c3731397f078/raw/f525e8d21f6697c68303300713ddb28a4bccf384/pt_br.affix' \
       -o /usr/share/postgresql/18/tsearch_data/hunspell_pt_br.affix
 
-COPY src/busca/domains/nota_ri/repository/db/ini_fts.sql /docker-entrypoint-initdb.d/
-
+COPY src/busca/infra/sql/init_fts.sql /docker-entrypoint-initdb.d/
 USER postgres
 EXPOSE 5432

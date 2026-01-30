@@ -1,5 +1,5 @@
 import pandas as pd
-from typing import List
+from typing import List, Any
 from pathlib import Path
 import datetime
 
@@ -8,6 +8,9 @@ from busca.domains.nota_ri.core.nota_ri import NotaRi
 
 
 class NotaRIRepositoryCSV(DataRepository):
+
+    def save_all(self, items: List[Any]) -> int:
+        raise NotImplementedError("Método save_all não implementado para CSV.")
 
     def __init__(self, file: str | Path):
         self.file = Path(file)

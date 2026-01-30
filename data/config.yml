@@ -38,7 +38,47 @@ nota_ri:
       - name: content
         weight: A
   infra:
-    fts_init_sql_file: src/busca/domains/nota_ri/repository/db/ini_fts.sql
+    fts_init_sql_file: src/busca/domains/nota_ri/repository/db/init_fts.sql
+
+material:
+  domain_name: 'Material'
+
+  database:
+    dev:
+      user: postgres
+      password: postgres
+      host: localhost
+      port: 5430
+      db_name: material
+      drop_all: false
+
+    test:
+      user: postgres
+      password: postgres
+      host: localhost
+      port: 5430
+      db_name: material_test
+      drop_all: true
+
+    prod:
+      user: postgres
+      password: ${MATERIAL_DB_PASSWORD}
+      host: db.prod.internal
+      port: 5430
+      db_name: material
+      drop_all: false
+
+  sqlite:
+    file: /home/aquino/PycharmProjects/busca-core/data/materiais/materiais.db
+
+  search_config:
+    table_name: material_search
+    fields:
+      - name: content
+        weight: A
+
+  infra:
+    fts_init_sql_file: src/busca/domains/material/repository/db/init_fts.sql
 
 frontend:
   port: 80
